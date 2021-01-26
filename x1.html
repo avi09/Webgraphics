@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <script src = "https://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js"></script>
+    <meta charset="utf-8">
+    <title>WebGL Demo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
+      integrity="sha512-zhHQR0/H5SEBL3Wn6yYSaTTZej12z0hVZKOv3TwCUXT1z5qeqGcXJLLrbERYRScEDDpYIJhPC1fk31gqR783iQ=="
+      crossorigin="anonymous" defer>
+    </script>
+    <script src="cube.js" defer></script>
+  </head>
+  <style>
+  .container {
+    position: relative;
+  }
+  #xd {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+  }
+  </style>
+  <body ng-app="cubes" ng-controller="cubes_controller">
+  <div class = "container">
+    <div ng-repeat="canvas_id in iterate" class = "draw">
+    <canvas id = {{canvas_id}} height="960" width="1890" style="font-color: red;"></canvas>
+    <div id="xd">abcd</div>
+    </div>
+  </div>
+  </body>
+</html>
