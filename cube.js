@@ -72,9 +72,6 @@ function start(){
 $scope.iterate.forEach(canvas_name => {
   let canvas = document.querySelector("#"+canvas_name);
   let gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-  settings["to_cover"][0] = getRandomArbitrary(0.0, 1.0);
-  settings["to_cover"][1] = getRandomArbitrary(0.0, 1.0);
-  settings["to_cover"][2] = getRandomArbitrary(0.0, 1.0);
   main(gl, settings);
 });
 }
@@ -143,14 +140,17 @@ function initBuffers(gl)
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(settings["positions"]), gl.STATIC_DRAW);
   // Convert the array of colors into a table for all the vertices.
   let colors = [];
-  i = 0;
-  for (i = 0; i <= 5; i++)
+
+  //randomly initialize color of every face within the given RGB constraints
+  for (let i = 0; i <= 5; i++)
   {
     settings["faceColors"][i][0] = getRandomArbitrary(0.4, 0.8);
     settings["faceColors"][i][1] = getRandomArbitrary(0.0, 0.5);
     settings["faceColors"][i][2] = getRandomArbitrary(0.4, 0.8);
     settings["faceColors"][i][3] = getRandomArbitrary(0.7, 0.8);
   }
+
+  //make buffer
   for (let j = 0; j < settings["faceColors"].length; ++j)
   {
     let c = settings["faceColors"][j];
@@ -190,13 +190,13 @@ function drawScene(gl, programInfo, buffers, deltaTime, X, Y, Z, settings)
   gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
   // Create a perspective matrix, a special matrix that is
-  // used to simulate the distortion of perspective in a camera.
+  // used to simulate the distortion of perspective in a camera
   // Our field of view is 45 degrees, with a width/height
   // ratio that matches the display size of the canvas
   // and we only want to see objects between 0.1 units
   // and 100 units away from the camera.
-
   let fieldOfView = 45 * Math.PI / 180;   // in radians
   let aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
   let zNear = 0.1;
@@ -206,9 +206,8 @@ function drawScene(gl, programInfo, buffers, deltaTime, X, Y, Z, settings)
   // note: glmatrix.js always has the first argument
   // as the destination to receive the result.
   mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
-  // Set the drawing position to the "identity" point, which is
-  // the center of the scene.
 
+  // Set the transformational, rotational and scaling values on iteration
   function getMatrix(X, Y, Z, trans_x, trans_y, trans_z, settings)
   {
     let modelViewMatrix = mat4.create();
@@ -223,6 +222,9 @@ function drawScene(gl, programInfo, buffers, deltaTime, X, Y, Z, settings)
 
   for (let xx = 0; xx < buffers.length ; xx += 1)
   {
+    //check if current object has reached intended destination
+    //otherwise continue moving it on the axis
+    //if it has reached it, set destination to another arbitrary location
     diff1 = buffers[xx]["translate"][0][1] - buffers[xx]["translate"][0][0];
     diff2 = buffers[xx]["translate"][1][1] - buffers[xx]["translate"][1][0];
     if ( Math.abs(diff1) < 0.1 )
@@ -238,51 +240,51 @@ function drawScene(gl, programInfo, buffers, deltaTime, X, Y, Z, settings)
       diff2 = buffers[xx]["translate"][1][1] - buffers[xx]["translate"][1][0];
     }
     buffers[xx]["translate"][1][0] = buffers[xx]["translate"][1][0] + number( settings["movement_rate"] * Math.sign(diff2) );
+
+    //get the model matrix after giving the desired positions
     buffers[xx]["modelViewMatrix"] = getMatrix(X, Y, Z, buffers[xx]["translate"][0][0], buffers[xx]["translate"][1][0], -40.0, settings);
-  // Tell WebGL how to pull out the positions from the position
-  // buffer into the vertexPosition attribute
-  {
-    let numComponents = 3;
-    let type = gl.FLOAT;
-    let normalize = false;
-    let stride = 0;
-    let offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers[xx].position);
-    gl.vertexAttribPointer( programInfo.attribLocations.vertexPosition, numComponents, type, normalize, stride, offset);
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+
+    // Tell WebGL how to pull out the positions from the position
+    // buffer into the vertexPosition attribute
+    {
+      let numComponents = 3;
+      let type = gl.FLOAT;
+      let normalize = false;
+      let stride = 0;
+      let offset = 0;
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffers[xx].position);
+      gl.vertexAttribPointer( programInfo.attribLocations.vertexPosition, numComponents, type, normalize, stride, offset);
+      gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+    }
+
+    // Tell WebGL how to pull out the colors from the color buffer
+    // into the vertexColor attribute.
+    {
+      let numComponents = 4;
+      let type = gl.FLOAT;
+      let normalize = false;
+      let stride = 0;
+      let offset = 0;
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffers[xx].color);
+      gl.vertexAttribPointer( programInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
+      gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+    }
+
+    // Tell WebGL which indices to use to index the vertices
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers[xx].triangle_locations);
+
+    // Set the shader uniforms
+    gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
+    gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, buffers[xx]["modelViewMatrix"]);
+
+    {
+      //give in the number of vertex to actually draw, in this case it is all
+      let vertexCount = 36;
+      let type = gl.UNSIGNED_SHORT;
+      let offset = 0;
+      gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+    }
   }
-
-  // Tell WebGL how to pull out the colors from the color buffer
-  // into the vertexColor attribute.
-  {
-    let numComponents = 4;
-    let type = gl.FLOAT;
-    let normalize = false;
-    let stride = 0;
-    let offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers[xx].color);
-    gl.vertexAttribPointer( programInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
-  }
-
-  // Tell WebGL which indices to use to index the vertices
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers[xx].triangle_locations);
-
-  // Tell WebGL to use our program when drawing
-
-
-  // Set the shader uniforms
-  gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
-  gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, buffers[xx]["modelViewMatrix"]);
-
-  {
-    let vertexCount = 36;
-    let type = gl.UNSIGNED_SHORT;
-    let offset = 0;
-    gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
-    //gl.drawElements(gl.TRIANGLES, 16, type, offset);
-  }
-}
 
   // Update the rotation for the next draw
   settings["cubeRotation"] += deltaTime;
