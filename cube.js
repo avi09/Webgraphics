@@ -60,7 +60,7 @@ triangle_locations: [
 ],
 to_cover: [1.0, 1.0, 1.0],
 rotation_quantity: [1, 1, 1],
-number_cubes: 40,
+number_cubes: 60,
 trans_h: [-29.0, 29.0],
 trans_v: [-18.0, 18.0],
 movement_rate: 0.1
